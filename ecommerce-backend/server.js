@@ -27,10 +27,6 @@ import adminProductRoutes from "./routes/adminProductRoutes.js";
 import adminCategoryRoutes from "./routes/adminCategoryRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
-import offerRoutes from "./routes/offerRoutes.js";
-
-// 🆕 NEW
-import machineRoutes from "./routes/machineRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 
 // =========================
@@ -65,7 +61,6 @@ app.use(
         return callback(null, true);
       }
 
-      console.log("🚫 CORS blocked:", origin);
       return callback(null, false);
     },
     credentials: true,
@@ -76,12 +71,8 @@ app.use(
 // ✅ SOCKET.IO
 // =========================
 const io = new Server(server, {
-  cors: {
-    origin: true,
-    credentials: true,
-  },
+  cors: { origin: true, credentials: true },
 });
-
 app.set("socketio", io);
 
 // =========================
@@ -98,47 +89,35 @@ const __dirname = path.resolve();
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // =========================
-// ✅ ROOT TEST
+// ✅ ROOT
 // =========================
 app.get("/", (req, res) => {
   res.send("✅ Keva API is running successfully...");
 });
 
 // =========================
-// ✅ ROUTES REGISTER
+// ✅ ROUTES
 // =========================
-
-// Auth
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", adminRoutes);
 
-// Users & Products
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 
-// Cart & Orders
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 
-// Admin
 app.use("/api/auth/admin/products", adminProductRoutes);
 app.use("/api/auth/admin/category", adminCategoryRoutes);
 
-// Customer
 app.use("/api/categories", categoryRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 
-// Others
 app.use("/api", contactRoutes);
-app.use("/api/offers", offerRoutes);
-
-// 🆕 MACHINES & APPOINTMENTS
-app.use("/api", machineRoutes);
-
 app.use("/api", appointmentRoutes);
 
 // =========================
-// ✅ ERROR HANDLING
+// ✅ ERRORS
 // =========================
 app.use(notFound);
 app.use(errorHandler);
@@ -148,17 +127,15 @@ app.use(errorHandler);
 // =========================
 io.on("connection", (socket) => {
   console.log("🟢 Client connected:", socket.id);
-
   socket.on("disconnect", () => {
     console.log("🔴 Client disconnected:", socket.id);
   });
 });
 
 // =========================
-// ✅ START SERVER
+// ✅ START
 // =========================
 const PORT = process.env.PORT || 5000;
-
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
