@@ -6,17 +6,34 @@ const productSchema = new mongoose.Schema(
       en: { type: String, required: true },
       ta: { type: String },
     },
-    description: { type: String },
-    price: { type: Number, required: true },
-    stock: { type: Number, default: 0 },
+
+    description: {
+      en: { type: String, default: "" },
+      ta: { type: String, default: "" },
+    },
+
+    stock: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
     image: { type: String },
+
     category: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Category", // ✅ Link to Category model
+      ref: "Category",
+      required: true,
+    },
+
+    type: {
+      type: String,
+      enum: ["KEVA", "ORGANIC"],
       required: true,
     },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Product", productSchema);
+const Product = mongoose.model("Product", productSchema);
+export default Product;

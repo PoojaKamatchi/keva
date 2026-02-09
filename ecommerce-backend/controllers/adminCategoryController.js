@@ -15,20 +15,19 @@ export const getCategories = async (req, res) => {
 // ✅ Add new category
 export const addCategory = async (req, res) => {
   try {
-    let { name, imageUrl } = req.body;
+    let { name, imageUrl, type } = req.body;
 
-    if (!name) return res.status(400).json({ message: "Category name is required" });
+    if (!name || !type)
+      return res.status(400).json({ message: "Name and Type are required" });
+
     if (typeof name === "string") name = JSON.parse(name);
-
-    if (!name.en || !name.ta) {
-      return res.status(400).json({ message: "Both English and Tamil names are required" });
-    }
 
     const imagePath = req.file ? `/uploads/${req.file.filename}` : imageUrl || "";
 
     const category = new Category({
       name,
       image: imagePath,
+      type, // ✅ ADDED
     });
 
     await category.save();
@@ -42,23 +41,24 @@ export const addCategory = async (req, res) => {
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    let { name, imageUrl } = req.body;
+    let { name, imageUrl, type } = req.body;
 
     if (name && typeof name === "string") name = JSON.parse(name);
 
     const category = await Category.findById(id);
     if (!category) return res.status(404).json({ message: "Category not found" });
 
-    // Update name
     if (name) {
-      if (name.en) category.name.en = name.en;
-      if (name.ta) category.name.ta = name.ta;
+      category.name.en = name.en;
+      category.name.ta = name.ta;
     }
 
-    // Update image
+    if (type) {
+      category.type = type; // ✅ ADDED
+    }
+
     if (req.file) {
-      // Delete old image if exists
-      if (category.image && category.image.startsWith("/uploads/")) {
+      if (category.image?.startsWith("/uploads/")) {
         const oldPath = path.join(process.cwd(), category.image.replace(/^\//, ""));
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
@@ -80,14 +80,13 @@ export const deleteCategory = async (req, res) => {
     const category = await Category.findByIdAndDelete(req.params.id);
     if (!category) return res.status(404).json({ message: "Category not found" });
 
-    // Delete image from uploads
-    if (category.image && category.image.startsWith("/uploads/")) {
+    if (category.image?.startsWith("/uploads/")) {
       const imgPath = path.join(process.cwd(), category.image.replace(/^\//, ""));
       if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
     }
 
     res.json({ message: "Category deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete category", error: error.message });
+    res.status(500).json({ message: "Failed to delete category" });
   }
 };

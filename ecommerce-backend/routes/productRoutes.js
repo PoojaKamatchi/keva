@@ -8,13 +8,14 @@ import {
 
 const router = express.Router();
 
-// 🛒 Public routes for customers
-router.get("/", getProducts);
-router.get("/category/:id", getProductsByCategory);
+// 🛒 Customer routes
+router.get("/", getProducts);                    // All products
+router.get("/category/:id", getProductsByCategory); // Products by category
 
-// 🔍 Search route — must be BEFORE :id
+// 🔍 Search route (before :id to prevent conflict)
 router.get("/search", searchProducts);
 
+// Single product by ID
 router.get("/:id", getProductById);
 
 export default router;

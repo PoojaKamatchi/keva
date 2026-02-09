@@ -6,10 +6,19 @@ export const saveContact = async (req, res) => {
     let info = await Contact.findOne();
 
     if (info) {
-      // Update existing record
-      info = await Contact.findOneAndUpdate({}, req.body, { new: true });
+      // ✅ SAFE MERGE (do not overwrite with empty values)
+      Object.keys(req.body).forEach((key) => {
+        if (
+          req.body[key] !== "" &&
+          req.body[key] !== null &&
+          req.body[key] !== undefined
+        ) {
+          info[key] = req.body[key];
+        }
+      });
+
+      await info.save();
     } else {
-      // Create new record
       info = await Contact.create(req.body);
     }
 

@@ -13,7 +13,9 @@ import { Server } from "socket.io";
 import connectDB from "./config/db.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
-// Routes
+// =========================
+// ✅ ROUTES
+// =========================
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
@@ -26,6 +28,10 @@ import adminCategoryRoutes from "./routes/adminCategoryRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import offerRoutes from "./routes/offerRoutes.js";
+
+// 🆕 NEW
+import machineRoutes from "./routes/machineRoutes.js";
+import appointmentRoutes from "./routes/appointmentRoutes.js";
 
 // =========================
 // ✅ ENV + DB
@@ -40,23 +46,18 @@ const app = express();
 const server = http.createServer(app);
 
 // =========================
-// ✅ CORS CONFIG (FIXED)
+// ✅ CORS CONFIG
 // =========================
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow Postman, curl, mobile apps
       if (!origin) return callback(null, true);
 
       const allowedOrigins = [
         "http://localhost:5173",
         "http://localhost:5174",
-        "https://vite-project-awha.onrender.com",
-       "https://adminpanel-7pn1.onrender.com",
-
       ];
 
-      // Allow Render frontend domains
       if (
         allowedOrigins.includes(origin) ||
         origin.endsWith(".onrender.com")
@@ -65,7 +66,7 @@ app.use(
       }
 
       console.log("🚫 CORS blocked:", origin);
-      return callback(null, false); // ❗ DO NOT throw error
+      return callback(null, false);
     },
     credentials: true,
   })
@@ -80,6 +81,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
 app.set("socketio", io);
 
 // =========================
@@ -99,11 +101,11 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ✅ ROOT TEST
 // =========================
 app.get("/", (req, res) => {
-  res.send("✅ API is running successfully...");
+  res.send("✅ Keva API is running successfully...");
 });
 
 // =========================
-// ✅ ROUTES
+// ✅ ROUTES REGISTER
 // =========================
 
 // Auth
@@ -130,6 +132,11 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api", contactRoutes);
 app.use("/api/offers", offerRoutes);
 
+// 🆕 MACHINES & APPOINTMENTS
+app.use("/api", machineRoutes);
+
+app.use("/api", appointmentRoutes);
+
 // =========================
 // ✅ ERROR HANDLING
 // =========================
@@ -141,6 +148,7 @@ app.use(errorHandler);
 // =========================
 io.on("connection", (socket) => {
   console.log("🟢 Client connected:", socket.id);
+
   socket.on("disconnect", () => {
     console.log("🔴 Client disconnected:", socket.id);
   });
@@ -150,6 +158,7 @@ io.on("connection", (socket) => {
 // ✅ START SERVER
 // =========================
 const PORT = process.env.PORT || 5000;
+
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

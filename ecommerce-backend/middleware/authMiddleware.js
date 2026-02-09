@@ -2,71 +2,72 @@ import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
 import Admin from "../models/adminModel.js";
 
-/* ===================== USER PROTECT ===================== */
+// Protect normal user routes
 export const protect = async (req, res, next) => {
   let token;
-  try {
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
       token = req.headers.authorization.split(" ")[1];
 
-      // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Find user
-      const user = await User.findById(decoded.id).select("-password");
-      if (!user) {
+      req.user = await User.findById(decoded.id).select("-password");
+      if (!req.user) {
         return res.status(401).json({ message: "User not found" });
       }
 
-      req.user = user;
       next();
-    } else {
-      return res.status(401).json({ message: "Not authorized, no token" });
+    } catch (error) {
+      console.error("USER PROTECT ERROR:", error.message);
+
+      if (error.name === "TokenExpiredError") {
+        return res.status(401).json({
+          message: "Session expired. Please login again",
+        });
+      }
+
+      return res.status(401).json({ message: "Invalid token" });
     }
-  } catch (error) {
-    console.error("User Auth Error:", error.message);
-    res.status(401).json({ message: "Not authorized, token failed" });
+  } else {
+    return res.status(401).json({ message: "No token provided" });
   }
 };
 
-/* ===================== ADMIN PROTECT ===================== */
+// Protect admin routes
 export const adminProtect = async (req, res, next) => {
   let token;
-  try {
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
       token = req.headers.authorization.split(" ")[1];
 
-      // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Find admin
-      const admin = await Admin.findById(decoded.id).select("-password");
-      if (!admin) {
+      req.admin = await Admin.findById(decoded.id).select("-password");
+      if (!req.admin) {
         return res.status(401).json({ message: "Admin not found" });
       }
 
-      req.admin = admin;
       next();
-    } else {
-      return res.status(401).json({ message: "Not authorized, no token" });
-    }
-  } catch (error) {
-    console.error("Admin Auth Error:", error.message);
-    res.status(401).json({ message: "Not authorized, token failed" });
-  }
-};
+    } catch (error) {
+      console.error("ADMIN PROTECT ERROR:", error.message);
 
-/* ===================== OPTIONAL: ROLE CHECK ===================== */
-// Use in routes if you want to allow only admin or user
-export const authorizeRoles = (...roles) => (req, res, next) => {
-  if (roles.includes(req.admin?.role || req.user?.role)) {
-    return next();
+      if (error.name === "TokenExpiredError") {
+        return res.status(401).json({
+          message: "Admin session expired. Please login again",
+        });
+      }
+
+      return res.status(401).json({ message: "Invalid token" });
+    }
+  } else {
+    return res.status(401).json({ message: "No token provided" });
   }
-  return res.status(403).json({ message: "Forbidden: insufficient role" });
 };

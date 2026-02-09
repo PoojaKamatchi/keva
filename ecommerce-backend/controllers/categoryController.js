@@ -1,10 +1,19 @@
-// backend/controllers/categoryController.js
 import Category from "../models/categoryModel.js";
 
-// ✅ Fetch all categories for customers (read-only)
+// ✅ Fetch categories for customers by TYPE
 export const getPublicCategories = async (req, res) => {
   try {
-    const categories = await Category.find().select("name image"); // Only show name & image
+    const { type } = req.query; // KEVA or ORGANIC
+
+    let filter = {};
+    if (type) {
+      filter.type = type.toUpperCase();
+    }
+
+    const categories = await Category.find(filter).select(
+      "name image type"
+    );
+
     res.json(categories);
   } catch (error) {
     console.error("❌ Error fetching categories:", error);

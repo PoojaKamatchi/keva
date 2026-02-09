@@ -10,7 +10,6 @@ import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
-// 🧾 Admin Product Management
 router.get("/", adminAuth, getAllProducts);
 router.post("/", adminAuth, upload.single("image"), createProduct);
 router.put("/:id", adminAuth, upload.single("image"), updateProduct);

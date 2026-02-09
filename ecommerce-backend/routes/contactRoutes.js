@@ -3,11 +3,11 @@ import { saveContact, getContact } from "../controllers/contactController.js";
 
 const router = express.Router();
 
-// Admin panel route (save/update)
-router.post("/admin/contact", saveContact);  // Admin can POST new info
-router.put("/admin/contact", saveContact);   // Admin can PUT updated info
+// Admin
+router.post("/admin/contact", saveContact);
+router.put("/admin/contact", saveContact);
 
-// User route (fetch contact info)
+// User
 router.get("/contact", getContact);
 
 export default router;
