@@ -1,5 +1,5 @@
 // src/pages/Login.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
@@ -12,7 +12,7 @@ export default function Login() {
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-  const [mode, setMode] = useState("login"); // login, register, forgot, otp, reset, verify-register-otp
+  const [mode, setMode] = useState("login"); // login | register | verify | forgot | otp | reset
   const [otpTimer, setOtpTimer] = useState(0);
 
   const [form, setForm] = useState({
@@ -27,120 +27,131 @@ export default function Login() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  /* ===================== AUTH HANDLER ===================== */
   const handleAuth = async () => {
     try {
-      // -------- LOGIN --------
+      /* ---------- LOGIN ---------- */
       if (mode === "login") {
-        if (!form.email || !form.password)
-          return toast.error("Email & Password required");
-
-        const res = await axios.post(`${API_URL}/api/auth/login`, {
+        const res = await axios.post(`${API_URL}/api/users/login`, {
           email: form.email,
           password: form.password,
         });
 
+        // ✅ Save data in the correct keys for Layout.jsx
         localStorage.setItem("authToken", res.data.token);
         localStorage.setItem("userName", res.data.user.name);
+        localStorage.setItem("userId", res.data.user.id);
+        localStorage.setItem("userEmail", res.data.user.email);
 
-        // Trigger Layout update
-        window.dispatchEvent(new Event("storage"));
-
-        toast.success("Login successful!");
+        toast.success("Login successful");
         navigate("/");
+        window.dispatchEvent(new Event("storage")); // update Layout.jsx
       }
 
-      // -------- REGISTER --------
+      /* ---------- REGISTER ---------- */
       if (mode === "register") {
-        if (!form.name || !form.email || !form.password)
-          return toast.error("All fields required");
-
-        const res = await axios.post(`${API_URL}/api/auth/register-otp`, {
+        const res = await axios.post(`${API_URL}/api/users/register`, {
           name: form.name,
           email: form.email,
           password: form.password,
         });
 
-        toast.success("OTP sent to your email for verification!");
-        setMode("verify-register-otp");
-        setOtpTimer(600);
+        toast.success("OTP sent to your email");
         setForm({ ...form, userId: res.data.userId });
+        setOtpTimer(120);
+        setMode("verify");
       }
 
-      // -------- VERIFY REGISTER OTP --------
-      if (mode === "verify-register-otp") {
-        if (!form.otp) return toast.error("Enter OTP");
-
-        await axios.post(`${API_URL}/api/auth/verify-register-otp`, {
+      /* ---------- VERIFY REGISTER OTP ---------- */
+      if (mode === "verify") {
+        await axios.post(`${API_URL}/api/users/verify-register-otp`, {
           userId: form.userId,
           otp: form.otp,
         });
 
-        toast.success("Registration verified! You can now login.");
+        toast.success("Registration successful! Please login");
+        setOtpTimer(0);
         setMode("login");
       }
 
-      // -------- FORGOT PASSWORD --------
+      /* ---------- FORGOT PASSWORD ---------- */
       if (mode === "forgot") {
-        if (!form.email) return toast.error("Enter email");
-
-        const res = await axios.post(`${API_URL}/api/auth/forgot-password`, {
+        const res = await axios.post(`${API_URL}/api/users/forgot-password`, {
           email: form.email,
         });
 
-        toast.success("OTP sent to your email!");
-        setMode("otp");
-        setOtpTimer(600);
+        toast.success("OTP sent to your email");
         setForm({ ...form, userId: res.data.userId });
+        setOtpTimer(120);
+        setMode("otp");
       }
 
-      // -------- VERIFY OTP --------
+      /* ---------- VERIFY OTP (FOR RESET) ---------- */
       if (mode === "otp") {
-        if (!form.otp) return toast.error("Enter OTP");
-
-        await axios.post(`${API_URL}/api/auth/verify-otp`, {
+        await axios.post(`${API_URL}/api/users/verify-otp`, {
           userId: form.userId,
           otp: form.otp,
         });
 
-        toast.success("OTP verified! Set your new password.");
+        toast.success("OTP verified");
+        setOtpTimer(0);
         setMode("reset");
       }
 
-      // -------- RESET PASSWORD --------
+      /* ---------- RESET PASSWORD ---------- */
       if (mode === "reset") {
-        if (!form.newPassword) return toast.error("Enter new password");
-
-        await axios.put(`${API_URL}/api/auth/reset-password`, {
+        await axios.put(`${API_URL}/api/users/reset-password`, {
           userId: form.userId,
           otp: form.otp,
           newPassword: form.newPassword,
         });
 
-        toast.success("Password reset successful!");
+        toast.success("Password reset successful");
+        setOtpTimer(0);
         setMode("login");
       }
     } catch (err) {
-      console.log(err.response?.data);
       toast.error(err.response?.data?.message || "Action failed");
     }
   };
 
-  // OTP timer
-  React.useEffect(() => {
-    let t;
-    if (otpTimer > 0) t = setInterval(() => setOtpTimer((n) => n - 1), 1000);
-    return () => clearInterval(t);
+  /* ===================== OTP TIMER ===================== */
+  useEffect(() => {
+    let timer;
+    if (otpTimer > 0) {
+      timer = setInterval(() => setOtpTimer((t) => t - 1), 1000);
+    }
+    return () => clearInterval(timer);
   }, [otpTimer]);
 
-  const formatTime = (s) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(
-      2,
-      "0"
-    )}`;
+  // Stop OTP timer if we leave OTP/verify mode
+  useEffect(() => {
+    if (mode !== "otp" && mode !== "verify") {
+      setOtpTimer(0);
+    }
+  }, [mode]);
 
+  const formatTime = (s) =>
+    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+  /* ===================== RESEND OTP ===================== */
+  const handleResendOtp = async () => {
+    try {
+      const type = mode === "verify" ? "register" : "reset";
+      await axios.post(`${API_URL}/api/users/resend-otp`, {
+        userId: form.userId,
+        type,
+      });
+      toast.success("OTP resent successfully");
+      setOtpTimer(120);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to resend OTP");
+    }
+  };
+
+  /* ===================== UI ===================== */
   return (
     <div className="relative w-full h-screen overflow-hidden text-white">
-      {/* BACKGROUND VIDEO */}
       <video
         src={bgVideo}
         autoPlay
@@ -153,129 +164,46 @@ export default function Login() {
 
       <div className="relative z-10 w-full h-full flex items-center justify-center px-4">
         <div className="w-full max-w-5xl bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
-          {/* LEFT FORM */}
-          <div className="w-full md:w-1/2 p-8 md:p-10 flex flex-col justify-center">
-            <h2 className="text-3xl font-bold text-white text-center mb-6">
-              {mode === "register"
-                ? "Create Account"
-                : mode === "verify-register-otp"
-                ? "Verify Registration OTP"
-                : mode === "login"
-                ? "Welcome Back"
-                : mode === "otp"
-                ? "Enter OTP"
-                : mode === "forgot"
-                ? "Forgot Password"
-                : "Reset Password"}
+          {/* LEFT */}
+          <div className="w-full md:w-1/2 p-10">
+            <h2 className="text-3xl font-bold text-center mb-6">
+              {mode === "login" && "Welcome Back"}
+              {mode === "register" && "Create Account"}
+              {mode === "verify" && "Verify OTP"}
+              {mode === "forgot" && "Forgot Password"}
+              {mode === "otp" && "Verify OTP"}
+              {mode === "reset" && "Reset Password"}
             </h2>
 
             <div className="flex flex-col gap-4">
-              {(mode === "login" || mode === "register" || mode === "forgot") && (
-                <>
-                  {mode === "register" && (
-                    <input
-                      name="name"
-                      placeholder="Full Name"
-                      value={form.name}
-                      onChange={handleChange}
-                      className="py-3 px-4 rounded-lg bg-white/20 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                  )}
-                  <input
-                    name="email"
-                    placeholder="Email"
-                    value={form.email}
-                    onChange={handleChange}
-                    className="py-3 px-4 rounded-lg bg-white/20 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  />
-                  {(mode === "login" || mode === "register") && (
-                    <input
-                      type="password"
-                      name="password"
-                      placeholder="Password"
-                      value={form.password}
-                      onChange={handleChange}
-                      className="py-3 px-4 rounded-lg bg-white/20 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                  )}
-                  <button
-                    onClick={handleAuth}
-                    className="mt-2 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors font-semibold text-white"
-                  >
-                    {mode === "login"
-                      ? "Login"
-                      : mode === "register"
-                      ? "Register"
-                      : "Send OTP"}
-                  </button>
-                </>
+              {mode === "register" && <input name="name" placeholder="Name" onChange={handleChange} />}
+              {mode !== "otp" && mode !== "reset" && <input name="email" placeholder="Email" onChange={handleChange} />}
+              {(mode === "login" || mode === "register") && <input type="password" name="password" placeholder="Password" onChange={handleChange} />}
+              {(mode === "otp" || mode === "reset" || mode === "verify") && <input name="otp" placeholder="OTP" onChange={handleChange} />}
+              {mode === "reset" && <input type="password" name="newPassword" placeholder="New Password" onChange={handleChange} />}
+
+              {otpTimer > 0 && <p className="text-sm">Expires in {formatTime(otpTimer)}</p>}
+
+              {otpTimer <= 0 && (mode === "otp" || mode === "verify") && (
+                <button onClick={handleResendOtp} className="text-sm text-blue-400 underline">
+                  Resend OTP
+                </button>
               )}
 
-              {(mode === "otp" || mode === "reset" || mode === "verify-register-otp") && (
-                <>
-                  <input
-                    name="otp"
-                    placeholder="OTP"
-                    value={form.otp}
-                    onChange={handleChange}
-                    className="py-3 px-4 rounded-lg bg-white/20 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  />
-                  {mode === "reset" && (
-                    <input
-                      type="password"
-                      name="newPassword"
-                      placeholder="New Password"
-                      value={form.newPassword}
-                      onChange={handleChange}
-                      className="py-3 px-4 rounded-lg bg-white/20 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                  )}
-                  <p className="text-white text-sm mb-2">
-                    Expires in: {formatTime(otpTimer)}
-                  </p>
-                  <button
-                    onClick={handleAuth}
-                    className="py-3 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors font-semibold text-white"
-                  >
-                    {mode === "otp" || mode === "verify-register-otp"
-                      ? "Verify OTP"
-                      : "Reset Password"}
-                  </button>
-                </>
-              )}
+              <button onClick={handleAuth} className="py-3 bg-blue-600 rounded-lg hover:bg-blue-700">Submit</button>
             </div>
 
-            <div className="text-center text-white mt-4 space-y-1">
-              {mode !== "login" && (
-                <p className="link cursor-pointer" onClick={() => setMode("login")}>
-                  Login
-                </p>
-              )}
-              {mode !== "register" && (
-                <p className="link cursor-pointer" onClick={() => setMode("register")}>
-                  Register
-                </p>
-              )}
-              {mode !== "forgot" && (
-                <p className="link cursor-pointer" onClick={() => setMode("forgot")}>
-                  Forgot Password?
-                </p>
-              )}
+            <div className="mt-4 text-center space-y-1">
+              <p onClick={() => setMode("login")} className="cursor-pointer">Login</p>
+              <p onClick={() => setMode("register")} className="cursor-pointer">Register</p>
+              <p onClick={() => setMode("forgot")} className="cursor-pointer">Forgot Password?</p>
             </div>
           </div>
 
-          {/* RIGHT – LOGO */}
-          <div className="w-full md:w-1/2 bg-white/10 p-8 md:p-10 flex flex-col items-center justify-center text-white">
-            <img
-              src={logo}
-              className="w-32 h-32 md:w-40 md:h-40 rounded-full shadow-xl mb-6 border-4 border-white/30"
-            />
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-wide text-center">
-              Welcome to Life Gain Herbal Products
-            </h1>
-            <p className="mt-4 text-center text-white/80 text-base md:text-lg">
-              Trusted medical essentials delivered fast and safe 💊✨
-            </p>
+          {/* RIGHT */}
+          <div className="w-full md:w-1/2 p-10 flex flex-col items-center justify-center">
+            <img src={logo} className="w-36 h-36 rounded-full mb-4" />
+            <h1 className="text-3xl font-bold text-center">Life Gain Herbal Products</h1>
           </div>
         </div>
       </div>

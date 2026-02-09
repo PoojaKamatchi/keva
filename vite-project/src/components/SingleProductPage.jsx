@@ -1,84 +1,65 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { useCart } from "../components/CartContext";
-import { useWishlist } from "../components/WishlistContext";
+import { useLanguage } from "../context/LanguageContext";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function SingleProductPage() {
   const { id } = useParams();
+  const { lang } = useLanguage();
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-  const { addToCart, cartItems, productStocks } = useCart();
-  const { addToWishlist, wishlistItems } = useWishlist();
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/products/${id}`);
-        setProduct(res.data);
-      } catch (err) {
-        console.error("Error fetching product:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProduct();
+    axios
+      .get(`${API_URL}/api/products/${id}`)
+      .then((res) => setProduct(res.data))
+      .catch(() => setProduct(null))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="text-center mt-20">Loading product...</div>;
-  if (!product) return <div className="text-center mt-20">Product not found 😢</div>;
+  if (loading) {
+    return <p className="text-center py-10">Loading product...</p>;
+  }
 
-  const currentStock = productStocks?.[product._id] ?? product.stock ?? 0;
-  const isInCart = cartItems?.some((item) => item.product?._id === product._id);
-  const isInWishlist = wishlistItems?.some((item) => item._id === product._id);
+  if (!product) {
+    return <p className="text-center py-10">Product not found</p>;
+  }
+
+  // ✅ SAFE FALLBACK
+  const title =
+    lang === "ta"
+      ? product.name?.ta || product.name?.en
+      : product.name?.en || product.name?.ta;
+
+  const description =
+    lang === "ta"
+      ? product.description?.ta || product.description?.en
+      : product.description?.en || product.description?.ta;
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-teal-50 to-green-100 py-12 px-6 flex justify-center">
-      <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-3xl text-center">
+    <div className="min-h-screen bg-gray-50 flex justify-center px-4 py-10">
+      <div className="bg-white rounded-xl shadow-lg max-w-3xl w-full p-6">
+
+        {/* IMAGE */}
         <img
-          src={product.image?.startsWith("http") ? product.image : `${API_URL}${product.image}`}
-          alt={product.name?.en || "Product"}
-          className="w-full h-96 object-cover rounded-xl mb-6"
+          src={product.image || "https://via.placeholder.com/500"}
+          alt={title}
+          className="w-full h-96 object-cover rounded-lg"
         />
-        <h1 className="text-3xl font-bold text-gray-800">{product.name?.en || "Unnamed Product"}</h1>
-        <p className="text-gray-500 mt-2">{product.description || "No description available."}</p>
-        <p className="text-green-700 font-semibold mt-3 text-xl">₹{product.price ?? 0}</p>
-        <p className={`text-sm mt-1 ${currentStock > 0 ? "text-green-500" : "text-red-500"}`}>
-          {currentStock > 0 ? `In Stock: ${currentStock}` : "Out of Stock"}
+
+        {/* TITLE */}
+        <h1 className="mt-6 text-3xl font-bold text-center">
+          {title}
+        </h1>
+
+        {/* DESCRIPTION */}
+        <p className="mt-4 text-gray-700 text-center text-lg leading-relaxed">
+          {description || "No description available"}
         </p>
 
-        <div className="flex gap-3 mt-5 justify-center">
-          {isInCart ? (
-            <button disabled className="py-2 px-5 rounded-lg bg-gray-300 text-gray-700 cursor-not-allowed">
-              ✅ Added to Cart
-            </button>
-          ) : (
-            <button
-              onClick={() => addToCart(product)}
-              disabled={currentStock <= 0}
-              className={`py-2 px-5 rounded-lg text-white ${
-                currentStock > 0 ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-400 cursor-not-allowed"
-              }`}
-            >
-              🛒 Add to Cart
-            </button>
-          )}
-
-          {isInWishlist ? (
-            <button disabled className="py-2 px-5 bg-gray-300 text-gray-700 rounded-lg">
-              ❤️ In Wishlist
-            </button>
-          ) : (
-            <button
-              onClick={() => addToWishlist(product)}
-              className="py-2 px-5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg"
-            >
-              💖 Add to Wishlist
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );

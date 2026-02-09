@@ -1,61 +1,135 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import { CartProvider } from "./components/CartContext.jsx";
-import { WishlistProvider } from "./components/WishlistContext.jsx";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+// Context
+import { CartProvider } from "./components/CartContext";
+import { WishlistProvider } from "./components/WishlistContext";
+import { LanguageProvider } from "./context/LanguageContext";
 
 // Components
-import Layout from "./components/Navbar.jsx"; // <-- updated Layout
-import Home from "./pages/Home.jsx";
-import Cart from "./pages/Cart.jsx";
-import CategoryPage from "./pages/CategoryPage.jsx";
-import ProductPage from "./pages/ProductPage.jsx";
-import SingleProductPage from "./components/SingleProductPage.jsx";
-import Login from "./pages/Login.jsx";
-import Register from "./pages/Register.jsx";
-import CheckoutPage from "./pages/CheckoutPage.jsx";
-import PaymentPage from "./pages/PaymentPage.jsx";
-import OrderSuccessPage from "./pages/OrderSuccessPage.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import OrdersPage from "./pages/OrdersPage.jsx";
-import WishlistPage from "./pages/WishlistPage.jsx";
-import HelpPage from "./pages/HelpPage.jsx";
-import SettingsPage from "./pages/SettingsPage.jsx";
-import ReviewsPage from "./pages/ReviewsPage.jsx";
-import AboutPage from "./pages/AboutPage.jsx";
-import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
-import SearchResults from "./pages/SearchResults.jsx";
-import ContactPage from "./pages/Contact.jsx";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// Pages
+import Login from "./pages/Login";
+import Home from "./pages/Home";
+import CategoryPage from "./pages/CategoryPage";
+import SingleProductPage from "./components/SingleProductPage";
+import Cart from "./pages/Cart";
+import WishlistPage from "./pages/WishlistPage";
+import ContactPage from "./pages/Contact";
+import AboutPage from "./pages/AboutPage";
+import Appointment from "./pages/Appointment";
+import Machines from "./pages/Machines";
 
 export default function App() {
   return (
-    <CartProvider>
-      <WishlistProvider>
-        <Router>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/categories" element={<CategoryPage />} />
-              <Route path="/category/:id" element={<ProductPage />} />
-              <Route path="/product/:id" element={<SingleProductPage />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/payment/:orderId" element={<PaymentPage />} />
-              <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/wishlist" element={<WishlistPage />} />
-              <Route path="/help" element={<HelpPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/reviews" element={<ReviewsPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/contact" element={<ContactPage />} />
-            </Routes>
-          </Layout>
-        </Router>
-      </WishlistProvider>
-    </CartProvider>
+    <LanguageProvider>
+      <CartProvider>
+        <WishlistProvider>
+          <Router>
+
+            {/* 🔒 Fixed Navbar */}
+            <Navbar />
+
+            {/* 🔽 Offset for fixed navbar height */}
+            <div className="pt-16 min-h-screen">
+              <Routes>
+
+                {/* 🔓 Public Route */}
+                <Route path="/login" element={<Login />} />
+
+                {/* 🔐 Protected Routes */}
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Home />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/machines"
+                  element={
+                    <ProtectedRoute>
+                      <Machines />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/category/:id"
+                  element={
+                    <ProtectedRoute>
+                      <CategoryPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/product/:id"
+                  element={
+                    <ProtectedRoute>
+                      <SingleProductPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/cart"
+                  element={
+                    <ProtectedRoute>
+                      <Cart />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/wishlist"
+                  element={
+                    <ProtectedRoute>
+                      <WishlistPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/contact"
+                  element={
+                    <ProtectedRoute>
+                      <ContactPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/about"
+                  element={
+                    <ProtectedRoute>
+                      <AboutPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/appointment/:machineId"
+                  element={
+                    <ProtectedRoute>
+                      <Appointment />
+                    </ProtectedRoute>
+                  }
+                />
+
+              </Routes>
+            </div>
+
+            {/* 🔻 Footer */}
+            <Footer />
+
+          </Router>
+        </WishlistProvider>
+      </CartProvider>
+    </LanguageProvider>
   );
 }
