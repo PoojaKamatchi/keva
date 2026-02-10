@@ -6,13 +6,17 @@ import "react-transliterate/dist/index.css";
 const AddCategory = () => {
   const [nameEn, setNameEn] = useState("");
   const [nameTa, setNameTa] = useState("");
+
+  // ✅ NEW
+  const [type, setType] = useState("KEVA");
+
   const [imageFile, setImageFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [categories, setCategories] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const token = localStorage.getItem("adminToken");
 
   useEffect(() => {
@@ -33,10 +37,9 @@ const AddCategory = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
     setImageFile(file);
     setImageUrl("");
-    setImagePreview(URL.createObjectURL(file));
+    setImagePreview(file ? URL.createObjectURL(file) : null);
   };
 
   const handleUrlChange = (e) => {
@@ -50,6 +53,8 @@ const AddCategory = () => {
     setEditingId(category._id);
     setNameEn(category.name?.en || "");
     setNameTa(category.name?.ta || "");
+    setType(category.type || "KEVA"); // ✅ NEW
+
     const imageSrc = category.image?.startsWith("http")
       ? category.image
       : `${API_URL}${category.image}`;
@@ -75,25 +80,24 @@ const AddCategory = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!nameEn.trim() || !nameTa.trim()) {
-      alert("⚠️ Please enter both English and Tamil names.");
-      return;
-    }
+    if (!nameEn.trim() || !nameTa.trim())
+      return alert("⚠️ Please enter both English and Tamil names.");
 
-    if (!imageFile && !imageUrl.trim()) {
-      alert("⚠️ Please upload an image or enter an image URL.");
-      return;
-    }
+    if (!imageFile && !imageUrl.trim())
+      return alert("⚠️ Please upload an image or enter an image URL.");
 
     try {
       const formData = new FormData();
-      formData.append("name", JSON.stringify({ en: nameEn.trim(), ta: nameTa.trim() }));
+      formData.append(
+        "name",
+        JSON.stringify({ en: nameEn.trim(), ta: nameTa.trim() })
+      );
 
-      if (imageFile) {
-        formData.append("image", imageFile);
-      } else if (imageUrl.trim()) {
-        formData.append("imageUrl", imageUrl.trim());
-      }
+      // ✅ NEW
+      formData.append("type", type);
+
+      if (imageFile) formData.append("image", imageFile);
+      else if (imageUrl.trim()) formData.append("imageUrl", imageUrl.trim());
 
       if (editingId) {
         await axios.put(
@@ -108,21 +112,28 @@ const AddCategory = () => {
         );
         alert("✅ Category updated successfully!");
       } else {
-        await axios.post(`${API_URL}/api/auth/admin/category`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
+        await axios.post(
+          `${API_URL}/api/auth/admin/category`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
         alert("✅ Category added successfully!");
       }
 
+      // ✅ RESET
       setEditingId(null);
       setNameEn("");
       setNameTa("");
+      setType("KEVA");
       setImageFile(null);
       setImageUrl("");
       setImagePreview(null);
+
       fetchCategories();
     } catch (err) {
       console.error(err);
@@ -134,6 +145,7 @@ const AddCategory = () => {
     setEditingId(null);
     setNameEn("");
     setNameTa("");
+    setType("KEVA");
     setImageFile(null);
     setImageUrl("");
     setImagePreview(null);
@@ -164,24 +176,30 @@ const AddCategory = () => {
             />
           </div>
 
-          <div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="w-full p-3 border rounded-lg"
-            />
-          </div>
+          {/* ✅ NEW DROPDOWN */}
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="w-full p-4 rounded-xl border-2 border-gray-300 focus:border-purple-500 outline-none"
+          >
+            <option value="KEVA">KEVA Products</option>
+            <option value="ORGANIC">Our Organic Products</option>
+          </select>
 
-          <div>
-            <input
-              type="text"
-              placeholder="Or enter image URL (optional)"
-              value={imageUrl}
-              onChange={handleUrlChange}
-              className="w-full p-3 border rounded-lg"
-            />
-          </div>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="w-full p-3 border rounded-lg"
+          />
+
+          <input
+            type="text"
+            placeholder="Or enter image URL (optional)"
+            value={imageUrl}
+            onChange={handleUrlChange}
+            className="w-full p-3 border rounded-lg"
+          />
 
           {imagePreview && (
             <div className="flex justify-center">
@@ -200,6 +218,7 @@ const AddCategory = () => {
             >
               {editingId ? "✏️ Update Category" : "✨ Add Category"}
             </button>
+
             {editingId && (
               <button
                 type="button"
@@ -215,19 +234,29 @@ const AddCategory = () => {
         <hr className="my-6 border-gray-300" />
 
         <h2 className="text-xl font-semibold mb-4">Existing Categories</h2>
+
         <div className="grid sm:grid-cols-3 gap-3">
           {categories.length ? (
             categories.map((c) => (
-              <div key={c._id} className="p-3 bg-gray-50 rounded-lg border relative">
+              <div key={c._id} className="p-3 bg-gray-50 rounded-lg border">
                 <p className="font-semibold">{c.name?.en}</p>
                 <p className="text-sm text-gray-600">{c.name?.ta}</p>
+                <p className="text-xs text-green-700 font-semibold">
+                  {c.type}
+                </p>
+
                 {c.image && (
                   <img
-                    src={c.image.startsWith("http") ? c.image : `${API_URL}${c.image}`}
+                    src={
+                      c.image.startsWith("http")
+                        ? c.image
+                        : `${API_URL}${c.image}`
+                    }
                     alt={c.name?.en}
                     className="w-full h-20 object-cover mt-2 rounded"
                   />
                 )}
+
                 <div className="flex justify-between mt-2">
                   <button
                     onClick={() => handleEdit(c)}

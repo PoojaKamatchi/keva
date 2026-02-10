@@ -2,10 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-export default function AdminLogin() {
+const Login = () => {
   const navigate = useNavigate();
-
-  // Automatically picks localhost in dev and live URL in production
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const [email, setEmail] = useState("");
@@ -19,35 +17,36 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      console.log("Sending admin login request to:", API_URL);
-      const res = await axios.post(`${API_URL}/api/auth/admin/login`, {
-        email,
-        password,
-      });
+      const res = await axios.post(
+        `${API_URL}/api/auth/admin/login`,
+        { email, password },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
+      // Save token & admin name
       localStorage.setItem("adminToken", res.data.token);
       localStorage.setItem("adminName", res.data.admin.name);
 
       navigate("/admin/dashboard");
     } catch (err) {
-      console.error("Login Error:", err.response?.data);
-      setError(err.response?.data?.message || "Login failed");
+      console.error("Login error:", err.response?.data);
+      setError(err.response?.data?.message || "Invalid credentials");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-100 to-pink-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-pink-100">
       <form
         onSubmit={handleLogin}
-        className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md"
+        className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md"
       >
-        <h2 className="text-3xl font-bold text-center mb-6 text-blue-700">
+        <h2 className="text-3xl font-bold text-center text-blue-700 mb-6">
           Admin Login
         </h2>
 
-        {error && <p className="text-red-600 mb-3">{error}</p>}
+        {error && <p className="text-red-600 text-center mb-4">{error}</p>}
 
         <input
           type="email"
@@ -55,7 +54,7 @@ export default function AdminLogin() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full p-3 mb-4 border rounded-lg"
+          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
 
         <input
@@ -64,17 +63,19 @@ export default function AdminLogin() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full p-3 mb-4 border rounded-lg"
+          className="w-full p-3 mb-6 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
     </div>
   );
-}
+};
+
+export default Login;

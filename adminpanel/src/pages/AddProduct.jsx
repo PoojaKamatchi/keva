@@ -9,17 +9,18 @@ const AddProduct = ({ onProductAdded }) => {
   const [form, setForm] = useState({
     nameEn: "",
     nameTa: "",
-    price: "",
     stock: "",
     category: "",
+    type: "",
     description: "",
-    imageFile: null, // file object
-    imageUrl: "", // optional URL
+    imageFile: null,
+    imageUrl: "",
   });
 
   const [imagePreview, setImagePreview] = useState(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const token = localStorage.getItem("adminToken");
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -30,17 +31,17 @@ const AddProduct = ({ onProductAdded }) => {
   const fetchCategories = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/auth/admin/category`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: { Authorization: `Bearer ${token}` },
       });
       setCategories(res.data);
-    } catch (err) {
-      toast.error("⚠️ Failed to fetch categories!");
-      console.error(err);
+    } catch {
+      toast.error("Failed to fetch categories");
     }
   };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
+
     if (name === "imageFile") {
       const file = files[0];
       setForm({ ...form, imageFile: file, imageUrl: "" });
@@ -53,180 +54,162 @@ const AddProduct = ({ onProductAdded }) => {
     }
   };
 
-  const validateForm = () => {
-    if (!form.nameEn.trim() || !form.price || !form.stock || !form.category) {
-      toast.warn("Please fill in all required fields!");
-      return false;
-    }
-    return true;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
     setLoading(true);
 
     try {
       const formData = new FormData();
       formData.append("nameEn", form.nameEn);
       formData.append("nameTa", form.nameTa);
-      formData.append("price", form.price);
       formData.append("stock", form.stock);
       formData.append("category", form.category);
+      formData.append("type", form.type);
       formData.append("description", form.description);
-      if (form.imageFile) formData.append("image", form.imageFile);
-      else formData.append("imageUrl", form.imageUrl);
 
-      await axios.post(`${API_URL}/api/auth/admin/products`, formData, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      if (form.imageFile) {
+        formData.append("image", form.imageFile);
+      } else if (form.imageUrl) {
+        formData.append("imageUrl", form.imageUrl);
+      }
 
-      toast.success("✅ Product added successfully!");
-      // Reset form
+      await axios.post(
+        `${API_URL}/api/auth/admin/products`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      toast.success("Product added successfully");
+
       setForm({
         nameEn: "",
         nameTa: "",
-        price: "",
         stock: "",
         category: "",
+        type: "",
         description: "",
         imageFile: null,
         imageUrl: "",
       });
       setImagePreview(null);
 
-      // Optional callback to parent
-      if (onProductAdded) onProductAdded();
+      onProductAdded && onProductAdded();
     } catch (err) {
-      console.error("🔥 Product upload error:", err.response?.data || err.message);
-      toast.error(err.response?.data?.message || "❌ Failed to add product!");
+      console.error(err);
+      toast.error("Failed to add product");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-      <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl w-full max-w-3xl p-10 border border-gray-200">
-        <h1 className="text-4xl font-extrabold text-gray-800 mb-8 text-center">
-          🛒 Add New Product
-        </h1>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Add Product</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* English + Tamil Name */}
-          <div className="grid sm:grid-cols-2 gap-6">
-            <input
-              type="text"
-              name="nameEn"
-              value={form.nameEn}
-              onChange={handleChange}
-              placeholder="Product Name (English)"
-              className="w-full p-4 rounded-xl border-2 border-gray-300 focus:border-purple-500 outline-none"
-              required
-            />
-            <ReactTransliterate
-              value={form.nameTa}
-              onChangeText={(text) => setForm({ ...form, nameTa: text })}
-              lang="ta"
-              placeholder="பொருள் பெயர் (தமிழ்)"
-              className="w-full p-4 rounded-xl border-2 border-gray-300 focus:border-purple-500 outline-none bg-gray-50"
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Image URL + File */}
-          <div className="grid sm:grid-cols-2 gap-6 items-center">
-            <input
-              type="text"
-              name="imageUrl"
-              value={form.imageUrl}
-              onChange={handleChange}
-              placeholder="Paste Image URL"
-              className="w-full p-4 rounded-xl border-2 border-gray-300 focus:border-purple-500 outline-none"
-            />
-            <input
-              type="file"
-              name="imageFile"
-              onChange={handleChange}
-              accept="image/*"
-              className="w-full p-4 rounded-xl border-2 border-gray-300 focus:border-purple-500 outline-none"
-            />
-          </div>
+        <input
+          name="nameEn"
+          value={form.nameEn}
+          onChange={handleChange}
+          placeholder="Product Name (English)"
+          className="w-full p-3 border rounded"
+          required
+        />
 
-          {/* Image Preview */}
-          {imagePreview && (
-            <div className="flex justify-center">
-              <img
-                src={imagePreview}
-                onError={(e) => (e.target.src = "/fallback.png")}
-                alt="Preview"
-                className="w-48 h-48 object-cover rounded-xl shadow-md border-2 border-gray-200"
-              />
-            </div>
-          )}
+        <ReactTransliterate
+          value={form.nameTa}
+          onChangeText={(text) =>
+            setForm((prev) => ({ ...prev, nameTa: text }))
+          }
+          lang="ta"
+          placeholder="பொருள் பெயர் (தமிழ்)"
+          className="w-full p-3 border rounded"
+        />
 
-          {/* Price + Stock */}
-          <div className="grid sm:grid-cols-2 gap-6">
-            <input
-              type="number"
-              name="price"
-              value={form.price}
-              onChange={handleChange}
-              placeholder="Price (₹)"
-              className="w-full p-4 rounded-xl border-2 border-gray-300 focus:border-purple-500 outline-none"
-              required
-            />
-            <input
-              type="number"
-              name="stock"
-              value={form.stock}
-              onChange={handleChange}
-              placeholder="Stock"
-              className="w-full p-4 rounded-xl border-2 border-gray-300 focus:border-purple-500 outline-none"
-              required
-            />
-          </div>
+        <input
+          name="stock"
+          type="number"
+          value={form.stock}
+          onChange={handleChange}
+          placeholder="Stock"
+          className="w-full p-3 border rounded"
+          required
+        />
 
-          {/* Category */}
-          <select
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            className="w-full p-4 rounded-xl border-2 border-gray-300 focus:border-purple-500 outline-none"
-            required
-          >
-            <option value="">Select Category</option>
-            {categories.map((cat) => (
-              <option key={cat._id} value={cat._id}>
-                {cat.name?.en} / {cat.name?.ta || ""}
-              </option>
-            ))}
-          </select>
+        <select
+          name="category"
+          value={form.category}
+          onChange={handleChange}
+          className="w-full p-3 border rounded"
+          required
+        >
+          <option value="">Select Category</option>
+          {categories.map((cat) => (
+            <option key={cat._id} value={cat._id}>
+              {cat.name?.en} / {cat.name?.ta}
+            </option>
+          ))}
+        </select>
 
-          {/* Description */}
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            placeholder="Description"
-            className="w-full p-4 rounded-xl border-2 border-gray-300 focus:border-purple-500 outline-none"
-            rows="4"
+        <select
+          name="type"
+          value={form.type}
+          onChange={handleChange}
+          className="w-full p-3 border rounded"
+          required
+        >
+          <option value="">Select Product Type</option>
+          <option value="KEVA">KEVA</option>
+          <option value="ORGANIC">ORGANIC</option>
+        </select>
+
+        <input
+          name="imageUrl"
+          value={form.imageUrl}
+          onChange={handleChange}
+          placeholder="Image URL (optional)"
+          className="w-full p-3 border rounded"
+        />
+
+        <input
+          name="imageFile"
+          type="file"
+          accept="image/*"
+          onChange={handleChange}
+          className="w-full p-3 border rounded"
+        />
+
+        {imagePreview && (
+          <img
+            src={imagePreview}
+            alt="preview"
+            className="w-40 h-40 object-cover rounded"
           />
+        )}
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full transition-all duration-300 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-gray-900 font-bold py-4 rounded-xl shadow-lg ${
-              loading ? "opacity-60 cursor-not-allowed" : ""
-            }`}
-          >
-            {loading ? "⏳ Adding..." : "✨ Add Product"}
-          </button>
-        </form>
-      </div>
+        <textarea
+          name="description"
+          value={form.description}
+          onChange={handleChange}
+          placeholder="Description"
+          className="w-full p-3 border rounded"
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-black text-white p-3 rounded"
+        >
+          {loading ? "Adding..." : "Add Product"}
+        </button>
+      </form>
+
       <ToastContainer position="top-center" autoClose={2000} />
     </div>
   );

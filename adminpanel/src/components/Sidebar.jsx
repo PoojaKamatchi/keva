@@ -4,11 +4,7 @@ import {
   HomeIcon,
   CubeIcon,
   PlusCircleIcon,
-  ShoppingCartIcon,
-  UserIcon,
   TagIcon,
-  UserPlusIcon,
-  GiftIcon,
   PhoneIcon,
 } from "@heroicons/react/24/outline";
 
@@ -16,11 +12,7 @@ const menuItems = [
   { name: "Dashboard", path: "/admin/dashboard", icon: HomeIcon },
   { name: "Products", path: "/admin/products", icon: CubeIcon },
   { name: "Add Product", path: "/admin/products/add", icon: PlusCircleIcon },
-  { name: "Orders", path: "/admin/orders", icon: ShoppingCartIcon },
-  { name: "Users", path: "/admin/users", icon: UserIcon },
   { name: "Add Category", path: "/admin/add-category", icon: TagIcon },
-  
-  { name: "Offers", path: "/admin/offers", icon: GiftIcon },
   { name: "Contact Page", path: "/admin/contact", icon: PhoneIcon },
 ];
 
