@@ -52,6 +52,7 @@ app.use(
       const allowedOrigins = [
         "http://localhost:5173",
         "http://localhost:5174",
+        "https://keva-1-afd3.onrender.com",
       ];
 
       if (
