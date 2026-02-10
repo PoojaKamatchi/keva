@@ -53,6 +53,7 @@ app.use(
         "http://localhost:5173",
         "http://localhost:5174",
         "https://keva-1-afd3.onrender.com",
+         "https://keva-admin.onrender.com",
       ];
 
       if (
