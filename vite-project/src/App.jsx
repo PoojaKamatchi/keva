@@ -8,7 +8,6 @@ import { LanguageProvider } from "./context/LanguageContext";
 // Components
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
 import Login from "./pages/Login";
@@ -36,90 +35,19 @@ export default function App() {
             <div className="pt-16 min-h-screen">
               <Routes>
 
-                {/* 🔓 Public Route */}
+                {/* Public Routes (No Login Required) */}
+                <Route path="/" element={<Home />} />
+                <Route path="/machines" element={<Machines />} />
+                <Route path="/category/:id" element={<CategoryPage />} />
+                <Route path="/product/:id" element={<SingleProductPage />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/appointment/:machineId" element={<Appointment />} />
+
+                {/* Optional Login Page (still available if needed) */}
                 <Route path="/login" element={<Login />} />
-
-                {/* 🔐 Protected Routes */}
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Home />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/machines"
-                  element={
-                    <ProtectedRoute>
-                      <Machines />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/category/:id"
-                  element={
-                    <ProtectedRoute>
-                      <CategoryPage />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/product/:id"
-                  element={
-                    <ProtectedRoute>
-                      <SingleProductPage />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/cart"
-                  element={
-                    <ProtectedRoute>
-                      <Cart />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/wishlist"
-                  element={
-                    <ProtectedRoute>
-                      <WishlistPage />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/contact"
-                  element={
-                    <ProtectedRoute>
-                      <ContactPage />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/about"
-                  element={
-                    <ProtectedRoute>
-                      <AboutPage />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/appointment/:machineId"
-                  element={
-                    <ProtectedRoute>
-                      <Appointment />
-                    </ProtectedRoute>
-                  }
-                />
 
               </Routes>
             </div>
