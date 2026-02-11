@@ -3,8 +3,90 @@ import mongoose from "mongoose";
 import fs from "fs";
 import path from "path";
 
-// 🧾 Get all products
-export const getAllProducts = async (req, res) => {
+/* =====================================================
+   🛒 CUSTOMER - GET ALL PRODUCTS
+===================================================== */
+const getProducts = async (req, res) => {
+  try {
+    const products = await Product.find().populate("category", "name");
+    res.json(products);
+  } catch (err) {
+    console.error("Get Products Error:", err);
+    res.status(500).json({ message: "Failed to fetch products" });
+  }
+};
+
+/* =====================================================
+   📂 CUSTOMER - GET PRODUCTS BY CATEGORY
+===================================================== */
+const getProductsByCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid category ID" });
+    }
+
+    const products = await Product.find({ category: id }).populate(
+      "category",
+      "name"
+    );
+
+    res.json(products);
+  } catch (err) {
+    console.error("Category Products Error:", err);
+    res.status(500).json({ message: "Failed to fetch products by category" });
+  }
+};
+
+/* =====================================================
+   🔍 CUSTOMER - GET PRODUCT BY ID
+===================================================== */
+const getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    const product = await Product.findById(id).populate("category", "name");
+
+    if (!product)
+      return res.status(404).json({ message: "Product not found" });
+
+    res.json(product);
+  } catch (err) {
+    console.error("Get Product Error:", err);
+    res.status(500).json({ message: "Failed to fetch product" });
+  }
+};
+
+/* =====================================================
+   🔎 CUSTOMER - SEARCH PRODUCTS
+===================================================== */
+const searchProducts = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query)
+      return res.status(400).json({ message: "Search query required" });
+
+    const products = await Product.find({
+      "name.en": { $regex: query, $options: "i" },
+    }).populate("category", "name");
+
+    res.json(products);
+  } catch (err) {
+    console.error("Search Error:", err);
+    res.status(500).json({ message: "Search failed" });
+  }
+};
+
+/* =====================================================
+   🧾 ADMIN - GET ALL PRODUCTS (Formatted Images)
+===================================================== */
+const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find().populate("category", "name");
 
@@ -12,17 +94,22 @@ export const getAllProducts = async (req, res) => {
       ...p._doc,
       image: p.image?.startsWith("http")
         ? p.image
-        : `${req.protocol}://${req.get("host")}${p.image}`,
+        : p.image
+        ? `${req.protocol}://${req.get("host")}${p.image}`
+        : "",
     }));
 
     res.json(formatted);
-  } catch {
+  } catch (err) {
+    console.error("Get All Products Error:", err);
     res.status(500).json({ message: "Failed to fetch products" });
   }
 };
 
-// ➕ Create product
-export const createProduct = async (req, res) => {
+/* =====================================================
+   ➕ ADMIN - CREATE PRODUCT
+===================================================== */
+const createProduct = async (req, res) => {
   try {
     const {
       nameEn,
@@ -43,8 +130,12 @@ export const createProduct = async (req, res) => {
     }
 
     let imagePath = "";
-    if (req.file) imagePath = `/uploads/${req.file.filename}`;
-    else if (imageUrl?.startsWith("http")) imagePath = imageUrl;
+
+    if (req.file) {
+      imagePath = `/uploads/${req.file.filename}`;
+    } else if (imageUrl?.startsWith("http")) {
+      imagePath = imageUrl;
+    }
 
     const product = new Product({
       name: {
@@ -64,13 +155,15 @@ export const createProduct = async (req, res) => {
     const saved = await product.save();
     res.status(201).json(saved);
   } catch (err) {
-    console.error(err);
+    console.error("Create Product Error:", err);
     res.status(500).json({ message: "Failed to create product" });
   }
 };
 
-// ✏️ Update product
-export const updateProduct = async (req, res) => {
+/* =====================================================
+   ✏️ ADMIN - UPDATE PRODUCT
+===================================================== */
+const updateProduct = async (req, res) => {
   try {
     const {
       nameEn,
@@ -83,15 +176,27 @@ export const updateProduct = async (req, res) => {
     } = req.body;
 
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
 
-    if (nameEn)
-      product.name = { en: nameEn, ta: nameTa || product.name.ta };
+    if (!product)
+      return res.status(404).json({ message: "Product not found" });
 
-    if (description !== undefined)
-      product.description.en = description;
+    if (nameEn) {
+      product.name = {
+        en: nameEn,
+        ta: nameTa || product.name?.ta || "",
+      };
+    }
 
-    if (stock !== undefined) product.stock = Number(stock);
+    if (description !== undefined) {
+      product.description = {
+        en: description,
+        ta: product.description?.ta || "",
+      };
+    }
+
+    if (stock !== undefined) {
+      product.stock = Number(stock);
+    }
 
     if (type) product.type = type;
 
@@ -111,20 +216,46 @@ export const updateProduct = async (req, res) => {
 
     const updated = await product.save();
     res.json(updated);
-  } catch {
+  } catch (err) {
+    console.error("Update Product Error:", err);
     res.status(500).json({ message: "Failed to update product" });
   }
 };
 
-// 🗑️ Delete product
-export const deleteProduct = async (req, res) => {
+/* =====================================================
+   🗑️ ADMIN - DELETE PRODUCT
+===================================================== */
+const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    if (!product)
+      return res.status(404).json({ message: "Product not found" });
+
+    if (product.image && !product.image.startsWith("http")) {
+      const filePath = path.join("uploads", path.basename(product.image));
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
 
     await product.deleteOne();
+
     res.json({ message: "Product deleted" });
-  } catch {
+  } catch (err) {
+    console.error("Delete Product Error:", err);
     res.status(500).json({ message: "Failed to delete product" });
   }
+};
+
+/* =====================================================
+   🔥 EXPORT ALL FUNCTIONS (VERY IMPORTANT)
+===================================================== */
+export {
+  getProducts,
+  getProductsByCategory,
+  getProductById,
+  searchProducts,
+  getAllProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
 };
